@@ -1,4 +1,6 @@
 from pathlib import Path
+from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -6,20 +8,35 @@ SECRET_KEY = 'django-insecure-je=4n*c*24!!fcdc-9306(!co&4ntp)_7w9f((ri307&r(#xss
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
+
+# AUTH_USER_MODEL = "back.SystemUser"
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+APPEND_SLASH = False
 
 
 INSTALLED_APPS = [
+    # django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'booking'
+
+    # third party
+    'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+
+    # your apps
+    'booking',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',         # should be high
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,6 +65,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dev_jai.wsgi.application'
 
+# DATABASE (use env vars in production)
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -60,76 +79,48 @@ DATABASES = {
 }
 
 
-
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
+STATIC_URL = '/static/'
 
+# ----------------------
+# AUTH / JWT SETTINGS
+# ----------------------
+# Use a custom user model (we'll provide code below)
+AUTH_USER_MODEL = "booking.User"
 
-STATIC_URL = 'static/'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # allow normal authenticate()
+]
 
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-
-
-
-
-ALLOWED_HOSTS = ["*"]
-
-# AUTH_USER_MODEL = "back.SystemUser"
-
-CORS_ORIGIN_ALLOW_ALL = True
-
-APPEND_SLASH = False
-
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# REST FRAMEWORK
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
 }
 
-# #  This Time Is Used When User Get Token from Refresh Token
-# ACCESS_TOKEN_LIFETIME = 6000
-# ACCESS_TOKEN_LIFETIME_MOBILE = 6000
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv("JWT_ACCESS_MINUTES", "30"))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv("JWT_REFRESH_DAYS", "7"))),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    # optionally map user id claim (default is 'user_id')
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
 
-# #  This Time Is Used When User Login
-# TOKEN_LIFETIME_MOBILE = 36000
-# TOKEN_LIFETIME = 36000
-
-# #  This Time Is Used When User First Time login in App/Web
-# FIRST_LOGIN_TOKEN_LIFETIME_MOBILE = 6000
-# FIRST_LOGIN_TOKEN_LIFETIME = 6000
-
-
-# # Check if the "logs" directory exists and create it if not
-# log_dir = os.path.join(BASE_DIR, "logs")
-# if not os.path.exists(log_dir):
-#     os.makedirs(log_dir)
-
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
